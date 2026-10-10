@@ -204,7 +204,7 @@ vp8:
 | `net.transport` | Выбирает транспорт; должен быть одним из: `datachannel`, `vp8channel`, `seichannel`, `videochannel`                                         |
 | `room.id`       | Адрес комнаты; автоматически дополняется для Jitsi; опционально при использовании `auth.token` с провайдерами, поддерживающими автогенерацию |
 | `crypto.key`    | Перезаписывается новым случайным ключом для каждого пользователя                                                                            |
-| `vp8.*`         | Если transport равен `vp8channel`: `fps` (ограничение 1–120) и `batch` (ограничение 1–64) добавляются в пакет                               |
+| `vp8.*`         | Если transport равен `vp8channel`: `fps` (1–120), `batch_size` (1–64) и `tracks` (1–8 для Multi-Track MIMO) передаются в olcrtc и URI    |
 | `sei.*`         | Если transport равен `seichannel`: `fps`, `batch_size`, `fragment_size`, `ack_timeout_ms` используются при создании компактного URI         |
 | `video.*`       | Если transport равен `videochannel`: `width`, `height`, `fps`, `bitrate`, `hw`, `codec`, `qr_size`, `qr_recovery`, `tile_module`, `tile_rs` |
 

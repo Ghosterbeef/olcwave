@@ -9,7 +9,7 @@ ENV PATH="/go/bin:${PATH}"
 
 WORKDIR /build
 
-RUN git clone --depth=1 https://github.com/openlibrecommunity/olcrtc.git olcrtc
+RUN git clone --depth=1 --branch fix-telemost-vp8channel https://github.com/Ghosterbeef/olcrtc.git olcrtc
 
 WORKDIR /build/olcrtc
 

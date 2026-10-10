@@ -414,6 +414,9 @@ const translations = {
   wbstreamStep4: 'Go to Storage.',
   wbstreamStep5: 'Open Local Storage.',
   wbstreamStep6: 'Find the wb_auth_auth_slice key.',
+  vp8Tracks: 'VP8 Tracks (MIMO)',
+  vp8TracksHint: 'Number of parallel video tracks (1-8). Default: 1',
+  tracksHint: 'Multi-Track MIMO stream count (1 to 8). Allows parallel video streams for higher throughput and redundancy.',
 }
 
 export type TranslationKey = keyof typeof translations

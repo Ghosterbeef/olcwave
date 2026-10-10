@@ -27,6 +27,7 @@ TRANSPORT_OPTIONS = {
     "vp8": {
         "fps": "vp8-fps",
         "batch_size": "vp8-batch",
+        "tracks": "vp8-tracks",
     },
     "sei": {
         "fps": "fps",
@@ -120,14 +121,17 @@ class Subscriptions:
         if transport == "datachannel":
             return ""
 
-        short = TRANSPORT_NAMES[transport]
+        short = TRANSPORT_NAMES.get(transport)
+        if not short or short not in cfg or not isinstance(cfg[short], dict):
+            return ""
 
         params = "&".join(
             f"{TRANSPORT_OPTIONS[short][k]}={v}"
             for k, v in cfg[short].items()
+            if k in TRANSPORT_OPTIONS.get(short, {})
         )
 
-        return f"<{params}>"
+        return f"<{params}>" if params else ""
 
     @staticmethod
     def config_to_uri(config: str, name: str) -> str:

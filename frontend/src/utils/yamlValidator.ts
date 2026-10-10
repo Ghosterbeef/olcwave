@@ -104,6 +104,24 @@ export function validateYaml(yaml: string): YamlValidationResult {
   if (transport === 'vp8channel' && !root.vp8) {
     addError(errors, 'vp8', 'Required when net.transport is "vp8channel"')
   }
+  const vp8 = root.vp8 as Record<string, unknown> | undefined
+  if (vp8) {
+    if (vp8.fps !== undefined) {
+      if (typeof vp8.fps !== 'number' || vp8.fps < 1 || vp8.fps > 120) {
+        addError(errors, 'vp8.fps', 'Must be a number between 1 and 120')
+      }
+    }
+    if (vp8.batch_size !== undefined) {
+      if (typeof vp8.batch_size !== 'number' || vp8.batch_size < 1 || vp8.batch_size > 64) {
+        addError(errors, 'vp8.batch_size', 'Must be a number between 1 and 64')
+      }
+    }
+    if (vp8.tracks !== undefined) {
+      if (typeof vp8.tracks !== 'number' || !Number.isInteger(vp8.tracks) || vp8.tracks < 1 || vp8.tracks > 8) {
+        addError(errors, 'vp8.tracks', 'Must be an integer between 1 and 8 (Multi-Track MIMO)')
+      }
+    }
+  }
   if (transport === 'seichannel' && !root.sei) {
     addError(errors, 'sei', 'Required when net.transport is "seichannel"')
   }

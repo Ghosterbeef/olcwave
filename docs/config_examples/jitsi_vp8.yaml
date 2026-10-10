@@ -8,3 +8,4 @@ net:
 vp8:
   fps: 30
   batch_size: 64
+  tracks: 1  # Multi-Track MIMO (1..8)

@@ -9,6 +9,7 @@ import { useDebounce } from '../utils/useDebounce'
 import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import Select from '../components/ui/Select'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { Card, ErrorState, EmptyState, Skeleton } from '../components/ui/Misc'
@@ -444,6 +445,9 @@ function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
             <li>
               <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> — {t('transportHint', { options: 'datachannel, vp8channel, seichannel, videochannel' })}
             </li>
+            <li>
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">vp8.tracks</code> — {t('tracksHint')}
+            </li>
           </ul>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
@@ -513,6 +517,53 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
 
   const showAutogenHint = parsedProvider && (parsedProvider === 'telemost' || parsedProvider === 'wbstream') && !parsedToken
 
+  const isVp8 = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const net = root.net as Record<string, unknown> | undefined
+        return net?.transport === 'vp8channel' || !!root.vp8
+      }
+    } catch {}
+    return false
+  }, [config])
+
+  const parsedTracks = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const vp8 = root.vp8 as Record<string, unknown> | undefined
+        if (vp8 && typeof vp8.tracks === 'number') {
+          return String(vp8.tracks)
+        }
+      }
+    } catch {}
+    return '1'
+  }, [config])
+
+  const handleTracksChange = (newTracksStr: string) => {
+    const val = parseInt(newTracksStr, 10) || 1
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = { ...(doc as Record<string, unknown>) }
+        const vp8 = { ...((root.vp8 as Record<string, unknown>) || {}) }
+        if (!vp8.fps) vp8.fps = 60
+        if (!vp8.batch_size) vp8.batch_size = 64
+        vp8.tracks = val
+        root.vp8 = vp8
+        setConfig(dump(root, { indent: 2, lineWidth: -1 }))
+        return
+      }
+    } catch {}
+    if (/^\s*tracks:\s*\d+/m.test(config)) {
+      setConfig(config.replace(/^(\s*tracks:\s*)\d+/m, `$1${val}`))
+    } else if (/^\s*vp8:\s*$/m.test(config)) {
+      setConfig(config.replace(/^(\s*vp8:\s*)$/m, `$1\n  tracks: ${val}`))
+    }
+  }
   useEffect(() => {
     if (config.trim()) {
       setYamlResult(validateYaml(config))
@@ -612,6 +663,28 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
             <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('displayName')} />
             <Input label={t('tag')} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagError} />
           </div>
+          {isVp8 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
+                label={t('vp8Tracks')}
+                value={parsedTracks}
+                options={[
+                  { value: '1', label: '1 (Single-track, default)' },
+                  { value: '2', label: '2 tracks (MIMO 2x)' },
+                  { value: '3', label: '3 tracks (MIMO 3x)' },
+                  { value: '4', label: '4 tracks (MIMO 4x)' },
+                  { value: '5', label: '5 tracks (MIMO 5x)' },
+                  { value: '6', label: '6 tracks (MIMO 6x)' },
+                  { value: '7', label: '7 tracks (MIMO 7x)' },
+                  { value: '8', label: '8 tracks (MIMO 8x)' },
+                ]}
+                onChange={(e) => handleTracksChange(e.target.value)}
+              />
+              <div className="flex flex-col justify-end pb-1">
+                <span className="text-xs text-text-muted">{t('vp8TracksHint')}</span>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-text-secondary">{t('yamlConfig')}</label>
@@ -746,6 +819,53 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
 
   const showAutogenHint = parsedProvider && (parsedProvider === 'telemost' || parsedProvider === 'wbstream') && !parsedToken
 
+  const isVp8 = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const net = root.net as Record<string, unknown> | undefined
+        return net?.transport === 'vp8channel' || !!root.vp8
+      }
+    } catch {}
+    return false
+  }, [config])
+
+  const parsedTracks = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const vp8 = root.vp8 as Record<string, unknown> | undefined
+        if (vp8 && typeof vp8.tracks === 'number') {
+          return String(vp8.tracks)
+        }
+      }
+    } catch {}
+    return '1'
+  }, [config])
+
+  const handleTracksChange = (newTracksStr: string) => {
+    const val = parseInt(newTracksStr, 10) || 1
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = { ...(doc as Record<string, unknown>) }
+        const vp8 = { ...((root.vp8 as Record<string, unknown>) || {}) }
+        if (!vp8.fps) vp8.fps = 60
+        if (!vp8.batch_size) vp8.batch_size = 64
+        vp8.tracks = val
+        root.vp8 = vp8
+        setConfig(dump(root, { indent: 2, lineWidth: -1 }))
+        return
+      }
+    } catch {}
+    if (/^\s*tracks:\s*\d+/m.test(config)) {
+      setConfig(config.replace(/^(\s*tracks:\s*)\d+/m, `$1${val}`))
+    } else if (/^\s*vp8:\s*$/m.test(config)) {
+      setConfig(config.replace(/^(\s*vp8:\s*)$/m, `$1\n  tracks: ${val}`))
+    }
+  }
   useEffect(() => {
     if (profile) {
       setName(profile.name)
@@ -848,6 +968,28 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
               </div>
             </div>
           </div>
+          {isVp8 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
+                label={t('vp8Tracks')}
+                value={parsedTracks}
+                options={[
+                  { value: '1', label: '1 (Single-track, default)' },
+                  { value: '2', label: '2 tracks (MIMO 2x)' },
+                  { value: '3', label: '3 tracks (MIMO 3x)' },
+                  { value: '4', label: '4 tracks (MIMO 4x)' },
+                  { value: '5', label: '5 tracks (MIMO 5x)' },
+                  { value: '6', label: '6 tracks (MIMO 6x)' },
+                  { value: '7', label: '7 tracks (MIMO 7x)' },
+                  { value: '8', label: '8 tracks (MIMO 8x)' },
+                ]}
+                onChange={(e) => handleTracksChange(e.target.value)}
+              />
+              <div className="flex flex-col justify-end pb-1">
+                <span className="text-xs text-text-muted">{t('vp8TracksHint')}</span>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-text-secondary">{t('yamlConfig')}</label>

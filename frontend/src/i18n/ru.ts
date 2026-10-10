@@ -416,6 +416,9 @@ const ru: Translation = {
   wbstreamStep4: 'Перейдите в Storage.',
   wbstreamStep5: 'Откройте Local Storage.',
   wbstreamStep6: 'Найдите ключ wb_auth_auth_slice.',
+  vp8Tracks: 'Количество треков VP8 (MIMO)',
+  vp8TracksHint: 'Число параллельных видеопотоков (1-8). По умолчанию: 1',
+  tracksHint: 'Количество параллельных видеопотоков MIMO (от 1 до 8) для увеличения пропускной способности и отказоустойчивости.',
 }
 
 export default ru
