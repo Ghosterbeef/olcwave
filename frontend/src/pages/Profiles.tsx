@@ -62,8 +62,8 @@ export default function Profiles() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[220px]">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             value={search}
@@ -73,15 +73,17 @@ export default function Profiles() {
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
         <span className="text-xs text-text-muted tabular-nums">{t('nProfiles', { n: filtered.length })}</span>
         <Button variant="secondary" onClick={() => refetch()}>
           <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          {t('refresh')}
+          <span className="hidden sm:inline">{t('refresh')}</span>
         </Button>
         <Button onClick={() => setCreateOpen(true)}>
           <PlusIcon className="w-4 h-4" />
-          {t('newProfile')}
+          <span>{t('newProfile')}</span>
         </Button>
+        </div>
       </div>
 
       {isError ? (

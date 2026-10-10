@@ -94,8 +94,8 @@ export default function Users() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[220px]">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             value={search}
@@ -105,31 +105,32 @@ export default function Users() {
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
-        <span className="text-xs text-text-muted tabular-nums">{t('nUsers', { n: filtered.length })}</span>
-        <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
-        {rwEnabled === true && (
-          <Button variant="secondary" onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} disabled={syncMutation.isPending}>
-            <ArrowPathIcon className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {t('syncWithRemnawave')}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
+          <span className="text-xs text-text-muted tabular-nums">{t('nUsers', { n: filtered.length })}</span>
+          <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
+          {rwEnabled === true && (
+            <Button variant="secondary" onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} disabled={syncMutation.isPending}>
+              <ArrowPathIcon className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{t('syncWithRemnawave')}</span>
+            </Button>
+          )}
+          {rwEnabled === false && (
+            <Button variant="primary" onClick={() => setShowCreate(true)}>
+              <PlusIcon className="w-4 h-4" />
+              <span>{t('addUser')}</span>
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => refetch()}>
+            <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{t('refresh')}</span>
           </Button>
-        )}
-        {rwEnabled === false && (
-          <Button variant="primary" onClick={() => setShowCreate(true)}>
-            <PlusIcon className="w-4 h-4" />
-            {t('addUser')}
-          </Button>
-        )}
-        <Button variant="secondary" onClick={() => refetch()}>
-          <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          {t('refresh')}
-        </Button>
+        </div>
       </div>
 
       {isError ? (
         <Card>
           <ErrorState
-            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadUsers')}
-            onRetry={() => refetch()}
+            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadUsers')}\n            onRetry={() => refetch()}
           />
         </Card>
       ) : (
@@ -148,15 +149,7 @@ export default function Users() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading &&
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>
-                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>
-                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>
-                      <td className="px-5 py-3"><Skeleton className="h-4 w-28" /></td>
-                      <td className="px-5 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                      <td className="px-5 py-3"><Skeleton className="h-4 w-12 ml-auto" /></td>
-                    </tr>
+                  Array.from({ length: 6 }).map((_, i) => (\n                    <tr key={i}>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-28" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-12 ml-auto" /></td>\n                    </tr>
                   ))}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
@@ -427,8 +420,7 @@ function UserCreateModal({
               />
               {t('unlimitedTraffic')}
             </label>
-            {!unlimited && (
-              <Input
+            {!unlimited && (\n              <Input
                 label={t('trafficLimitGb')}
                 type="number"
                 min="0"
@@ -519,8 +511,7 @@ function UserEditModal({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const bytes = unlimited ? 0 : gbToBytes(parseFloat(limitGb) || 0)
-      await usersApi.update(user!.short_uuid, {
-        name: name || null,
+      await usersApi.update(user!.short_uuid, {\n        name: name || null,
         expires_at: new Date(expiry).toISOString(),
         traffic_limit_bytes: bytes,
         traffic_used_bytes: user!.traffic_used_bytes,
@@ -602,7 +593,7 @@ function UserEditModal({
             <ErrorState message={errMsg(error, t('failedToLoadTraffic'))} onRetry={() => refetch()} />
           ) : traffic ? (
             <>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <StatBox label={t('used')} value={formatBytes(traffic.used)} />
                 <StatBox label={t('limit')} value={traffic.unlimited ? '∞' : formatBytes(traffic.limit)} />
                 <StatBox label={t('remaining')} value={traffic.unlimited ? '∞' : formatBytes(traffic.remaining)} />

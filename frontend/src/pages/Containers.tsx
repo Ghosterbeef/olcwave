@@ -147,8 +147,8 @@ export default function Containers() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[220px]">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             value={search}
@@ -158,15 +158,17 @@ export default function Containers() {
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
-        <span className="text-xs text-text-muted tabular-nums">
-          {t('nContainers', { total: filtered.length, running: runningCount })}
-        </span>
-        <GroupToggle mode={groupMode} onChange={setGroupMode} />
-        <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
-        <Button variant="secondary" onClick={() => refetch()}>
-          <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          {t('refresh')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
+          <span className="text-xs text-text-muted tabular-nums">
+            {t('nContainers', { total: filtered.length, running: runningCount })}
+          </span>
+          <GroupToggle mode={groupMode} onChange={setGroupMode} />
+          <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
+          <Button variant="secondary" onClick={() => refetch()}>
+            <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{t('refresh')}</span>
+          </Button>
+        </div>
       </div>
 
       {isError ? (
@@ -305,20 +307,20 @@ function SortableTh({
 function GroupToggle({ mode, onChange }: { mode: GroupMode; onChange: (m: GroupMode) => void }) {
   const { t } = useLanguage()
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 bg-bg-tertiary border border-border rounded-md">
+    <div className="inline-flex items-center gap-0.5 p-0.5 bg-bg-tertiary border border-border rounded-md shrink-0">
       {groupOptions.map((opt) => {
         const active = mode === opt.key
         return (
           <button
             key={opt.key}
             onClick={() => onChange(opt.key)}
-            className={`inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium rounded transition-all cursor-pointer
+            className={`inline-flex items-center gap-1.5 h-7 px-2 sm:px-2.5 text-xs font-medium rounded transition-all cursor-pointer whitespace-nowrap
               ${active
                 ? 'bg-accent text-white shadow-soft'
                 : 'text-text-secondary hover:text-text-primary'}`}
           >
             <opt.icon className="w-3.5 h-3.5" />
-            {t(opt.labelKey)}
+            <span>{t(opt.labelKey)}</span>
           </button>
         )
       })}
