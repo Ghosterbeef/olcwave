@@ -130,7 +130,8 @@ export default function Users() {
       {isError ? (
         <Card>
           <ErrorState
-            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadUsers')}\n            onRetry={() => refetch()}
+            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadUsers')}
+            onRetry={() => refetch()}
           />
         </Card>
       ) : (
@@ -149,7 +150,15 @@ export default function Users() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading &&
-                  Array.from({ length: 6 }).map((_, i) => (\n                    <tr key={i}>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-28" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>\n                      <td className="px-5 py-3"><Skeleton className="h-4 w-12 ml-auto" /></td>\n                    </tr>
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>
+                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-5 py-3"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-5 py-3"><Skeleton className="h-4 w-28" /></td>
+                      <td className="px-5 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="px-5 py-3"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                    </tr>
                   ))}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
@@ -420,7 +429,8 @@ function UserCreateModal({
               />
               {t('unlimitedTraffic')}
             </label>
-            {!unlimited && (\n              <Input
+            {!unlimited && (
+              <Input
                 label={t('trafficLimitGb')}
                 type="number"
                 min="0"
@@ -511,7 +521,8 @@ function UserEditModal({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const bytes = unlimited ? 0 : gbToBytes(parseFloat(limitGb) || 0)
-      await usersApi.update(user!.short_uuid, {\n        name: name || null,
+      await usersApi.update(user!.short_uuid, {
+        name: name || null,
         expires_at: new Date(expiry).toISOString(),
         traffic_limit_bytes: bytes,
         traffic_used_bytes: user!.traffic_used_bytes,
