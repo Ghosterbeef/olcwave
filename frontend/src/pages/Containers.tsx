@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { containersApi } from '../api/containers'
+import { usersApi } from '../api/users'
 import type { Container } from '../types'
 import Button from '../components/ui/Button'
 import AutoRefreshSelect from '../components/ui/AutoRefreshSelect'
@@ -52,6 +53,26 @@ export default function Containers() {
     refetchInterval: refreshMs || false,
   })
 
+  const { data: users } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: () => usersApi.getAll().then((r) => r.data),
+    staleTime: 30_000,
+  })
+
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>()
+    if (users) {
+      for (const u of users) {
+        if (u.name) map.set(u.short_uuid, u.name)
+      }
+    }
+    return map
+  }, [users])
+
+  const getUserName = (shortUuid: string, userName?: string | null) => {
+    return userName || userMap.get(shortUuid) || null
+  }
+
   const deleteMutation = useMutation({
     mutationFn: (name: string) => containersApi.remove(name),
     onSuccess: () => {
@@ -68,14 +89,17 @@ export default function Containers() {
   const filtered = useMemo(() => {
     if (!containers) return []
     const q = search.toLowerCase()
-    return containers.filter(
-      (c) =>
+    return containers.filter((c) => {
+      const uName = getUserName(c.short_uuid, c.user_name)
+      return (
         c.name.toLowerCase().includes(q) ||
         c.short_uuid.toLowerCase().includes(q) ||
+        (uName && uName.toLowerCase().includes(q)) ||
         c.config_tag.toLowerCase().includes(q) ||
         c.status.toLowerCase().includes(q)
-    )
-  }, [containers, search])
+      )
+    })
+  }, [containers, search, userMap])
 
   const groups = useMemo(() => {
     const map = new Map<string, Container[]>()
@@ -90,11 +114,23 @@ export default function Containers() {
       if (sort.key === 'created') {
         return (new Date(a.created).getTime() - new Date(b.created).getTime()) * dir
       }
+      if (sort.key === 'short_uuid') {
+        const nameA = getUserName(a.short_uuid, a.user_name) || a.short_uuid
+        const nameB = getUserName(b.short_uuid, b.user_name) || b.short_uuid
+        return nameA.localeCompare(nameB) * dir
+      }
       return a[sort.key].localeCompare(b[sort.key]) * dir
     }
     for (const arr of map.values()) arr.sort(compare)
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
-  }, [filtered, groupMode, sort])
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      if (groupMode === 'short_uuid') {
+        const nameA = getUserName(a, map.get(a)?.[0]?.user_name) || a
+        const nameB = getUserName(b, map.get(b)?.[0]?.user_name) || b
+        return nameA.localeCompare(nameB)
+      }
+      return a.localeCompare(b)
+    })
+  }, [filtered, groupMode, sort, userMap])
 
   const runningCount = filtered.filter((c) => c.status === 'running').length
 
@@ -154,55 +190,66 @@ export default function Containers() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {groups.map(([key, items]) => (
-            <section key={key} className="space-y-3">
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  {groupMode === 'short_uuid' ? t('user') : t('configTag')}
-                </h3>
-                <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
-                <span className="text-xs text-text-muted tabular-nums">{items.length}</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto max-h-[70vh]">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="sticky top-0 z-10">
-                      <tr className="bg-bg-tertiary text-left border-b border-border">
-                        <SortableTh labelKey="userId" sortKey="short_uuid" sort={sort} onSort={toggleSort} />
-                        <SortableTh labelKey="configTag" sortKey="config_tag" sort={sort} onSort={toggleSort} />
-                        <SortableTh labelKey="created" sortKey="created" sort={sort} onSort={toggleSort} />
-                        <Th>{t('uptime')}</Th>
-                        <Th>{t('total')}</Th>
-                        <Th>{t('download')}</Th>
-                        <Th>{t('upload')}</Th>
-                        <Th>{t('downSpeed')}</Th>
-                        <Th>{t('upSpeed')}</Th>
-                        <SortableTh labelKey="status" sortKey="status" sort={sort} onSort={toggleSort} />
-                        <Th className="text-right">{t('actions')}</Th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {items.map((c) => (
-                        <ContainerRow
-                          key={c.id}
-                          container={c}
-                          expanded={expanded.has(c.id)}
-                          onToggle={() => toggleExpand(c.id)}
-                          onLogs={setLogsTarget}
-                          onConfig={setConfigTarget}
-                          onRequestDelete={setDeleteTarget}
-                          onSuccess={success}
-                          onError={error}
-                          colSpan={COL_SPAN}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
+          {groups.map(([key, items]) => {
+            const groupUserName = groupMode === 'short_uuid' ? getUserName(key, items[0]?.user_name) : null
+            return (
+              <section key={key} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    {groupMode === 'short_uuid' ? t('user') : t('configTag')}
+                  </h3>
+                  {groupMode === 'short_uuid' && groupUserName ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10">
+                      <span className="text-xs font-semibold text-accent">{groupUserName}</span>
+                      <code className="text-[11px] font-mono text-text-muted">({key})</code>
+                    </span>
+                  ) : (
+                    <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
+                  )}
+                  <span className="text-xs text-text-muted tabular-nums">{items.length}</span>
+                  <div className="flex-1 h-px bg-border" />
                 </div>
-              </Card>
-            </section>
-          ))}
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto max-h-[70vh]">
+                    <table className="w-full text-sm border-collapse">
+                      <thead className="sticky top-0 z-10">
+                        <tr className="bg-bg-tertiary text-left border-b border-border">
+                          <SortableTh labelKey="user" sortKey="short_uuid" sort={sort} onSort={toggleSort} />
+                          <SortableTh labelKey="configTag" sortKey="config_tag" sort={sort} onSort={toggleSort} />
+                          <SortableTh labelKey="created" sortKey="created" sort={sort} onSort={toggleSort} />
+                          <Th>{t('uptime')}</Th>
+                          <Th>{t('total')}</Th>
+                          <Th>{t('download')}</Th>
+                          <Th>{t('upload')}</Th>
+                          <Th>{t('downSpeed')}</Th>
+                          <Th>{t('upSpeed')}</Th>
+                          <SortableTh labelKey="status" sortKey="status" sort={sort} onSort={toggleSort} />
+                          <Th className="text-right">{t('actions')}</Th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {items.map((c) => (
+                          <ContainerRow
+                            key={c.id}
+                            container={c}
+                            userName={getUserName(c.short_uuid, c.user_name)}
+                            expanded={expanded.has(c.id)}
+                            onToggle={() => toggleExpand(c.id)}
+                            onLogs={setLogsTarget}
+                            onConfig={setConfigTarget}
+                            onRequestDelete={setDeleteTarget}
+                            onSuccess={success}
+                            onError={error}
+                            colSpan={COL_SPAN}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </section>
+            )
+          })}
         </div>
       )}
 

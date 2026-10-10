@@ -18,6 +18,7 @@ type Action = 'run' | 'stop' | 'restart'
 
 interface ContainerRowProps {
   container: Container
+  userName?: string | null
   expanded: boolean
   onToggle: () => void
   onLogs: (c: Container) => void
@@ -31,6 +32,7 @@ interface ContainerRowProps {
 
 export default function ContainerRow({
   container,
+  userName,
   expanded,
   onToggle,
   onLogs,
@@ -61,6 +63,7 @@ export default function ContainerRow({
   const pending = mutation.isPending ? mutation.variables?.action : undefined
   const isRunning = container.status === 'running'
   const created = new Date(container.created)
+  const effectiveUserName = userName ?? container.user_name
 
   const { data: stats } = useQuery({
     queryKey: ['container-stats', container.name],
@@ -78,13 +81,20 @@ export default function ContainerRow({
         className="hover:bg-bg-hover transition-colors cursor-pointer align-middle"
         title={`${container.name}\n${container.id}`}
       >
-        {/* 1. User ID (+ expand chevron) */}
+        {/* 1. User (+ expand chevron) */}
         <Td>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
             <ChevronRightIcon
               className={`w-3.5 h-3.5 shrink-0 text-text-muted transition-transform ${expanded ? 'rotate-90' : ''}`}
             />
-            <code className="font-mono text-text-secondary">{container.short_uuid}</code>
+            {effectiveUserName ? (
+              <span className="flex items-center gap-1.5">
+                <span className="font-medium text-text-primary">{effectiveUserName}</span>
+                <code className="font-mono text-xs text-text-muted">({container.short_uuid})</code>
+              </span>
+            ) : (
+              <code className="font-mono text-text-secondary">{container.short_uuid}</code>
+            )}
           </div>
         </Td>
         {/* 2. Config Tag */}
@@ -149,6 +159,7 @@ export default function ContainerRow({
               <Detail label={t('containerId')} value={container.id} mono />
               <Detail label={t('image')} value={container.image} mono />
               <Detail label={t('status')} value={container.status} />
+              {effectiveUserName && <Detail label={t('user')} value={effectiveUserName} />}
               <Detail label={t('userId')} value={container.short_uuid} mono />
               <Detail label={t('configTag')} value={container.config_tag} mono />
               <Detail label={t('created')} value={`${created.toLocaleDateString()} ${created.toLocaleTimeString()}`} />
@@ -167,16 +178,22 @@ function Td({ children, className = '' }: { children: React.ReactNode; className
 
 function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-wider text-text-muted">{label}</p>
-      <p className={`mt-0.5 text-text-secondary truncate ${mono ? 'font-mono' : ''}`} title={value}>
-        {value}
-      </p>
+    <div>
+      <span className="text-text-muted block text-[11px] mb-0.5">{label}</span>
+      <span className={`text-text-primary ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   )
 }
 
-interface ActionButtonProps {
+function ActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  loading = false,
+  disabled = false,
+  variant = 'default',
+  iconOnly = false,
+}: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   onClick: () => void
@@ -184,34 +201,23 @@ interface ActionButtonProps {
   disabled?: boolean
   variant?: 'default' | 'success' | 'danger'
   iconOnly?: boolean
-}
+}) {
+  const variantClasses = {
+    default: 'hover:bg-bg-secondary text-text-secondary hover:text-text-primary',
+    success: 'hover:bg-success/10 text-success hover:text-success',
+    danger: 'hover:bg-danger/10 text-danger hover:text-danger',
+  }[variant]
 
-const actionVariants = {
-  default: 'text-text-secondary hover:text-text-primary hover:bg-bg-hover',
-  success: 'text-success hover:bg-success/10',
-  danger: 'text-danger hover:bg-danger/10',
-}
-
-function ActionButton({ icon: Icon, label, onClick, loading, disabled, variant = 'default', iconOnly }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`inline-flex items-center gap-1.5 h-7 text-xs font-medium rounded-md
-        transition-all duration-150 cursor-pointer active:scale-[0.98]
-        disabled:opacity-40 disabled:pointer-events-none ${actionVariants[variant]}
-        ${iconOnly ? 'w-7 px-0 justify-center' : 'px-1.5'}`}
       title={label}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer
+        disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses}`}
     >
-      {loading ? (
-        <svg className="animate-spin h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      ) : (
-        <Icon className="w-3.5 h-3.5 shrink-0" />
-      )}
-      {!iconOnly && <span className="hidden xl:inline">{label}</span>}
+      <Icon className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+      {!iconOnly && <span>{label}</span>}
     </button>
   )
 }

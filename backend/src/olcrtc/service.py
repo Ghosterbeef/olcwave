@@ -52,7 +52,19 @@ class Containers:
             *(Containers.to_schema(container) for container in containers)
         )
 
-        return [schema for schema in schemas if schema is not None]
+        valid_schemas = [schema for schema in schemas if schema is not None]
+
+        try:
+            from users.service import Users
+
+            users = await Users.get_all()
+            user_map = {u.short_uuid: u.name for u in users if u.name}
+            for schema in valid_schemas:
+                schema.user_name = user_map.get(schema.short_uuid)
+        except Exception:
+            pass
+
+        return valid_schemas
 
     @staticmethod
     async def run(
@@ -151,30 +163,6 @@ class Containers:
         await asyncio.gather(
             *(
                 Containers.stop(container.name)
-                for container in containers
-                if container.config_tag == config_tag
-            )
-        )
-
-    @staticmethod
-    async def remove_all_by_short_uuid(short_uuid: str) -> None:
-        containers = await Containers.all()
-
-        await asyncio.gather(
-            *(
-                Containers.remove(container.name)
-                for container in containers
-                if container.short_uuid == short_uuid
-            )
-        )
-
-    @staticmethod
-    async def remove_all_by_config_tag(config_tag: str) -> None:
-        containers = await Containers.all()
-
-        await asyncio.gather(
-            *(
-                Containers.remove(container.name)
                 for container in containers
                 if container.config_tag == config_tag
             )

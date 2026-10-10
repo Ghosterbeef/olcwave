@@ -4,6 +4,7 @@ class ContainerSchema(BaseModel):
     id: str
     name: str
     short_uuid: str
+    user_name: str | None = None
     config_tag: str
     status: str
     created: str
