@@ -64,6 +64,18 @@ class Containers:
         except Exception:
             pass
 
+        try:
+            from database import async_session_factory
+            from profiles.db import ProfilesDB
+
+            async with async_session_factory() as db:
+                profiles = await ProfilesDB.get_all(db)
+                profile_map = {p.tag: p.name for p in profiles if p.name}
+                for schema in valid_schemas:
+                    schema.config_name = profile_map.get(schema.config_tag)
+        except Exception:
+            pass
+
         return valid_schemas
 
     @staticmethod

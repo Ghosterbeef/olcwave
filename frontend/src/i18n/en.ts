@@ -196,6 +196,7 @@ const translations = {
   containersHint: 'Containers appear here once profiles are launched for a user.',
   failedToLoadContainers: 'Failed to load containers',
   byUser: 'By User',
+  byConfig: 'By Config',
   byConfigTag: 'By Config Tag',
   user: 'User',
   configTag: 'Config Tag',

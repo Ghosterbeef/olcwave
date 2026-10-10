@@ -35,6 +35,7 @@ export interface Container {
   short_uuid: string
   user_name?: string | null
   config_tag: string
+  config_name?: string | null
   status: string
   created: string
   image: string

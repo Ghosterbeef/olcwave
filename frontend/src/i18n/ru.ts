@@ -198,6 +198,7 @@ const ru: Translation = {
   containersHint: 'Контейнеры появятся здесь после запуска профилей для пользователей.',
   failedToLoadContainers: 'Ошибка загрузки контейнеров',
   byUser: 'По пользователю',
+  byConfig: 'По конфигу',
   byConfigTag: 'По тегу конфига',
   user: 'Пользователь',
   configTag: 'Тег конфига',

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { containersApi } from '../api/containers'
 import { usersApi } from '../api/users'
+import { profilesApi } from '../api/profiles'
 import type { Container } from '../types'
 import Button from '../components/ui/Button'
 import AutoRefreshSelect from '../components/ui/AutoRefreshSelect'
@@ -31,7 +32,7 @@ const COL_SPAN = 11
 
 const groupOptions: { key: GroupMode; labelKey: TranslationKey; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'short_uuid', labelKey: 'byUser', icon: UsersIcon },
-  { key: 'config_tag', labelKey: 'byConfigTag', icon: TagIcon },
+  { key: 'config_tag', labelKey: 'byConfig', icon: TagIcon },
 ]
 
 export default function Containers() {
@@ -59,6 +60,12 @@ export default function Containers() {
     staleTime: 30_000,
   })
 
+  const { data: profiles } = useQuery({
+    queryKey: ['profiles-all'],
+    queryFn: () => profilesApi.getAll().then((r) => r.data),
+    staleTime: 30_000,
+  })
+
   const userMap = useMemo(() => {
     const map = new Map<string, string>()
     if (users) {
@@ -69,8 +76,22 @@ export default function Containers() {
     return map
   }, [users])
 
+  const profileMap = useMemo(() => {
+    const map = new Map<string, string>()
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.name) map.set(p.tag, p.name)
+      }
+    }
+    return map
+  }, [profiles])
+
   const getUserName = (shortUuid: string, userName?: string | null) => {
     return userName || userMap.get(shortUuid) || null
+  }
+
+  const getConfigName = (configTag: string, configName?: string | null) => {
+    return configName || profileMap.get(configTag) || null
   }
 
   const deleteMutation = useMutation({
@@ -91,15 +112,17 @@ export default function Containers() {
     const q = search.toLowerCase()
     return containers.filter((c) => {
       const uName = getUserName(c.short_uuid, c.user_name)
+      const cName = getConfigName(c.config_tag, c.config_name)
       return (
         c.name.toLowerCase().includes(q) ||
         c.short_uuid.toLowerCase().includes(q) ||
         (uName && uName.toLowerCase().includes(q)) ||
         c.config_tag.toLowerCase().includes(q) ||
+        (cName && cName.toLowerCase().includes(q)) ||
         c.status.toLowerCase().includes(q)
       )
     })
-  }, [containers, search, userMap])
+  }, [containers, search, userMap, profileMap])
 
   const groups = useMemo(() => {
     const map = new Map<string, Container[]>()
@@ -119,6 +142,11 @@ export default function Containers() {
         const nameB = getUserName(b.short_uuid, b.user_name) || b.short_uuid
         return nameA.localeCompare(nameB) * dir
       }
+      if (sort.key === 'config_tag') {
+        const nameA = getConfigName(a.config_tag, a.config_name) || a.config_tag
+        const nameB = getConfigName(b.config_tag, b.config_name) || b.config_tag
+        return nameA.localeCompare(nameB) * dir
+      }
       return a[sort.key].localeCompare(b[sort.key]) * dir
     }
     for (const arr of map.values()) arr.sort(compare)
@@ -128,9 +156,14 @@ export default function Containers() {
         const nameB = getUserName(b, map.get(b)?.[0]?.user_name) || b
         return nameA.localeCompare(nameB)
       }
+      if (groupMode === 'config_tag') {
+        const nameA = getConfigName(a, map.get(a)?.[0]?.config_name) || a
+        const nameB = getConfigName(b, map.get(b)?.[0]?.config_name) || b
+        return nameA.localeCompare(nameB)
+      }
       return a.localeCompare(b)
     })
-  }, [filtered, groupMode, sort, userMap])
+  }, [filtered, groupMode, sort, userMap, profileMap])
 
   const runningCount = filtered.filter((c) => c.status === 'running').length
 
@@ -194,19 +227,31 @@ export default function Containers() {
         <div className="space-y-6">
           {groups.map(([key, items]) => {
             const groupUserName = groupMode === 'short_uuid' ? getUserName(key, items[0]?.user_name) : null
+            const groupConfigName = groupMode === 'config_tag' ? getConfigName(key, items[0]?.config_name) : null
             return (
               <section key={key} className="space-y-3">
                 <div className="flex items-center gap-2.5">
                   <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    {groupMode === 'short_uuid' ? t('user') : t('configTag')}
+                    {groupMode === 'short_uuid' ? t('user') : t('config')}
                   </h3>
-                  {groupMode === 'short_uuid' && groupUserName ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10">
-                      <span className="text-xs font-semibold text-accent">{groupUserName}</span>
-                      <code className="text-[11px] font-mono text-text-muted">({key})</code>
-                    </span>
+                  {groupMode === 'short_uuid' ? (
+                    groupUserName ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10">
+                        <span className="text-xs font-semibold text-accent">{groupUserName}</span>
+                        <code className="text-[11px] font-mono text-text-muted">({key})</code>
+                      </span>
+                    ) : (
+                      <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
+                    )
                   ) : (
-                    <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
+                    groupConfigName ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10">
+                        <span className="text-xs font-semibold text-accent">{groupConfigName}</span>
+                        <code className="text-[11px] font-mono text-text-muted">({key})</code>
+                      </span>
+                    ) : (
+                      <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
+                    )
                   )}
                   <span className="text-xs text-text-muted tabular-nums">{items.length}</span>
                   <div className="flex-1 h-px bg-border" />
@@ -217,7 +262,7 @@ export default function Containers() {
                       <thead className="sticky top-0 z-10">
                         <tr className="bg-bg-tertiary text-left border-b border-border">
                           <SortableTh labelKey="user" sortKey="short_uuid" sort={sort} onSort={toggleSort} />
-                          <SortableTh labelKey="configTag" sortKey="config_tag" sort={sort} onSort={toggleSort} />
+                          <SortableTh labelKey="config" sortKey="config_tag" sort={sort} onSort={toggleSort} />
                           <SortableTh labelKey="created" sortKey="created" sort={sort} onSort={toggleSort} />
                           <Th>{t('uptime')}</Th>
                           <Th>{t('total')}</Th>
@@ -235,6 +280,7 @@ export default function Containers() {
                             key={c.id}
                             container={c}
                             userName={getUserName(c.short_uuid, c.user_name)}
+                            configName={getConfigName(c.config_tag, c.config_name)}
                             expanded={expanded.has(c.id)}
                             onToggle={() => toggleExpand(c.id)}
                             onLogs={setLogsTarget}

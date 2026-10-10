@@ -19,6 +19,7 @@ type Action = 'run' | 'stop' | 'restart'
 interface ContainerRowProps {
   container: Container
   userName?: string | null
+  configName?: string | null
   expanded: boolean
   onToggle: () => void
   onLogs: (c: Container) => void
@@ -33,6 +34,7 @@ interface ContainerRowProps {
 export default function ContainerRow({
   container,
   userName,
+  configName,
   expanded,
   onToggle,
   onLogs,
@@ -64,6 +66,7 @@ export default function ContainerRow({
   const isRunning = container.status === 'running'
   const created = new Date(container.created)
   const effectiveUserName = userName ?? container.user_name
+  const effectiveConfigName = configName ?? container.config_name
 
   const { data: stats } = useQuery({
     queryKey: ['container-stats', container.name],
@@ -79,7 +82,8 @@ export default function ContainerRow({
       <tr
         onClick={onToggle}
         className="hover:bg-bg-hover transition-colors cursor-pointer align-middle"
-        title={`${container.name}\n${container.id}`}
+        title={`${container.name}
+${container.id}`}
       >
         {/* 1. User (+ expand chevron) */}
         <Td>
@@ -97,16 +101,22 @@ export default function ContainerRow({
             )}
           </div>
         </Td>
-        {/* 2. Config Tag */}
+        {/* 2. Config */}
         <Td>
-          <code className="font-mono text-accent">{container.config_tag}</code>
+          {effectiveConfigName ? (
+            <span className="font-medium text-text-primary" title={container.config_tag}>
+              {effectiveConfigName}
+            </span>
+          ) : (
+            <code className="font-mono text-accent">{container.config_tag}</code>
+          )}
         </Td>
         {/* 3. Created */}
-        <Td className="text-text-secondary whitespace-nowrap">
+        <Td className="text-text-secondary">
           {created.toLocaleDateString()} {created.toLocaleTimeString()}
         </Td>
         {/* 4. Running For */}
-        <Td className="tabular-nums whitespace-nowrap">{isRunning ? formatUptime(created) : '—'}</Td>
+        <Td className="tabular-nums">{isRunning ? formatUptime(created) : '—'}</Td>
         {/* 5. Traffic Total */}
         <Td className="tabular-nums text-accent">{isRunning ? formatBytes(stats?.total_bytes ?? 0) : '—'}</Td>
         {/* 6. Traffic Download */}
@@ -120,7 +130,7 @@ export default function ContainerRow({
         {/* Status */}
         <Td><StatusBadge status={container.status} /></Td>
         {/* Actions */}
-        <td className="px-2.5 py-2.5 text-right" onClick={stop}>
+        <td className="px-2.5 py-2.5 text-right whitespace-nowrap" onClick={stop}>
           <div className="flex items-center justify-end gap-0.5">
             <ActionButton
               icon={isRunning ? StopIcon : PlayIcon}
@@ -161,6 +171,7 @@ export default function ContainerRow({
               <Detail label={t('status')} value={container.status} />
               {effectiveUserName && <Detail label={t('user')} value={effectiveUserName} />}
               <Detail label={t('userId')} value={container.short_uuid} mono />
+              {effectiveConfigName && <Detail label={t('config')} value={effectiveConfigName} />}
               <Detail label={t('configTag')} value={container.config_tag} mono />
               <Detail label={t('created')} value={`${created.toLocaleDateString()} ${created.toLocaleTimeString()}`} />
               {isRunning && <Detail label={t('runningFor')} value={formatUptime(created)} />}
@@ -173,7 +184,7 @@ export default function ContainerRow({
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-2.5 py-2.5 text-xs ${className}`}>{children}</td>
+  return <td className={`px-2.5 py-2.5 text-xs whitespace-nowrap ${className}`}>{children}</td>
 }
 
 function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
